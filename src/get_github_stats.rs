@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{collections::{HashSet, HashMap}, env};
+use std::{collections::{HashSet, HashMap, hash_map::Entry}, env};
 
 #[derive(Deserialize, Debug)]
 pub struct Repos {
@@ -19,22 +19,33 @@ pub struct Repo {
 
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
-struct Author{
+struct AuthorData{
     name: String,
     email: String,
     date: String,
 }
 
-
-
-#[derive(Deserialize, PartialEq, Eq, Hash)]
-struct Commit{
-    author: HashMap<String, String>,
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
+struct Author{
+    author: AuthorData,
 }
 
 
 
-#[derive(Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
+struct Commit{
+    sha: String,
+    node_id: String,
+    commit: Author,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
+struct Sha{
+    sha: String,
+}
+
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 struct Commits(HashSet<Commit>);
 
 
@@ -117,17 +128,23 @@ async fn main() {
 
 
 
+    //let mut all_repos: Vec<String> = Vec::new();
+    //all_repos.push(String::from("empty"));
+
+
+    let mut repo_commits: HashMap<String, HashMap<String, HashSet<String>>> = HashMap::new();
+
     let mut token_bearer = String::from("Bearer ");
     token_bearer.push_str(github_token);
 
-    for repo in all_repos{
+    for repo in &all_repos{
         let mut repo_url = String::new();
         repo_url.push_str("https://api.github.com/repos/");
         repo_url.push_str(github_username);
         repo_url.push_str("/");
         repo_url.push_str(&repo);
         repo_url.push_str("/commits");
-        //repo_url.push_str("&per_page=10000");
+        repo_url.push_str("?per_page=10000000");
         println!("{:?}", repo_url);   
 
         let res = client
@@ -145,14 +162,36 @@ async fn main() {
 
         match res {
             Ok(result) => {
-                //println!("{:?}", result.text().await);   
-                
                 match result.json::<Commits>().await {
-                //match result.text().await {
                     Ok(result) => {
-                        //let pp: String = serde_json::from_str(&result).expect("Failed to parse json.");
-                        let commits = result;
-                        println!("{:?}", commits);
+                        println!("{:?}", result.0.len());   
+                        for commit in result.0{
+                            let author_data = commit.commit.author;
+                            if &author_data.name == github_username {
+                                println!("{:?}", author_data);
+                                let values = match repo_commits.entry(repo.to_string()) {
+                                    Entry::Occupied(o) => o.into_mut(),
+                                    Entry::Vacant(v) => v.insert(HashMap::from([(author_data.date.clone(), HashSet::new())])),
+                                };
+                                //commit.sha in the hashset
+
+
+
+                                match values.entry(author_data.date) {
+                                    Entry::Occupied(set) => {
+                                        set.into_mut();
+                                        set.insert(commit.sha);
+                                    }
+                                    Entry::Vacant() => {
+
+                                    }
+                             
+                                }
+                                
+
+
+                            }
+                        }
                     },
                     Err(err) => {
                         println!("{:?}", err);   
