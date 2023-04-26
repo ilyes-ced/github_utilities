@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::{collections::HashSet, env, path::Path, process::Command};
 
+
 #[derive(Deserialize, Debug)]
 pub struct Repos {
     //total_count: i32,
@@ -24,8 +25,8 @@ const API: &str = "https://api.github.com/search/repositories?q=user:";
 async fn main() {
     let arguments: Vec<String> = env::args().collect();
 
-    if arguments.len() != 5 {
-        println!("requires 4 args path gitoken lab token");
+    if arguments.len() != 4 {
+        println!("requires 3 args github_username github_oken ");
         std::process::exit(1)
     }
 
@@ -47,6 +48,8 @@ async fn main() {
     repos.push_str(github_username);
     repos.push_str("&per_page=1000");
 
+    let mut token_bearer = String::from("Bearer ");
+    token_bearer.push_str(github_token);
     let client = reqwest::Client::new();
     let res = client
         .get(repos)
@@ -54,7 +57,7 @@ async fn main() {
         .header("User-Agent", "random dudde")
         .header(
             "Authorization",
-            "Bearer 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",
+            token_bearer,
         )
         .send()
         .await;
@@ -64,9 +67,9 @@ async fn main() {
         Ok(result) => {
             match result.json::<Repos>().await {
                 Ok(result) => {
-                    println!("{:?}", result.items.len());
+                    println!("you have: {:?} repos", result.items.len());
                     for repo in result.items {
-                        println!("{:?}", repo.name);
+                        println!("{}", repo.name);
                         all_repos.push(repo.name);
                     }
                 }
@@ -82,8 +85,8 @@ async fn main() {
         }
     };
 
-    println!("{:?}", all_repos);
 
+    println!("starting to clone:");
     let mut cloned_repos: u32 = 0;
     for repo in all_repos {
         let mut repo_url: String = String::new();

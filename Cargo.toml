@@ -3,6 +3,17 @@ name = "empty"
 version = "0.1.0"
 edition = "2021"
 
+
+
+[[bin]]
+name = "clone_repos"
+path = "src/clone_github_repos.rs"
+
+[[bin]]
+name = "github_stats"
+path = "src/get_github_stats.rs"
+
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
