@@ -115,13 +115,13 @@ async fn main() {
                 Err(err) => {
                     println!("{:?}", err);   
                     println!(
-                        "*********************** maybe a wrong username *********************"
+                        "*********************** maybe a wrong username or token or both *********************"
                     );
                 }
             };
         }
         Err(..) => {
-            println!("idk what the error");
+            println!("maybe internet connection bad");
         }
     };
 
@@ -129,7 +129,7 @@ async fn main() {
 
 
     //let mut all_repos: Vec<String> = Vec::new();
-    //all_repos.push(String::from("empty"));
+    //all_repos.push(String::from("slack_clone"));
 
 
     let mut repo_commits: HashMap<String, HashMap<String, HashSet<String>>> = HashMap::new();
@@ -144,7 +144,9 @@ async fn main() {
         repo_url.push_str("/");
         repo_url.push_str(&repo);
         repo_url.push_str("/commits");
-        repo_url.push_str("?per_page=10000000");
+        repo_url.push_str("?per_page=100");
+        repo_url.push_str("&author=");
+        repo_url.push_str(&github_username);
         println!("{:?}", repo_url);   
 
         let res = client
@@ -170,32 +172,26 @@ async fn main() {
                             let author_data = commit.commit.author;
                             if &author_data.name == github_username {
                                 println!("{:?}", author_data);
-                                let values = match repo_commits.entry(repo.to_string()) {
-                                    Entry::Occupied(o) => o.into_mut(),
-                                    Entry::Vacant(v) => v.insert(HashMap::from([(author_data.date.clone(), HashSet::new())])),
-                                };
+                                //let values = match repo_commits.entry(repo.to_string()) {
+                                //    Entry::Occupied(o) => o.into_mut(),
+                                //    Entry::Vacant(v) => v.insert(HashMap::from([(author_data.date.clone(), HashSet::new())])),
+                                //};
                                 //commit.sha in the hashset
 
-
-
-                                match values.entry(author_data.date) {
-                                    Entry::Occupied(set) => {
-                                        set.into_mut();
-                                        set.insert(commit.sha);
-                                    }
-                                    Entry::Vacant() => {
-
-                                    }
-                             
-                                }
+                                repo_commits
+                                    .entry(repo.to_string()).or_default()
+                                    .entry(author_data.date).or_default().insert(commit.sha);
+                                
+                               
                                 
 
 
                             }
-                        }
+                        };
+                        println!("{:?}", repo_commits);
                     },
                     Err(err) => {
-                        println!("{:?}", err);   
+                        println!("{:?}", err);
                     }
                 }
             },
